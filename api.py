@@ -6,8 +6,10 @@ import os
 import platform
 import socket
 import threading
+import time
 from sys import platform as sys_platform
 
+import nmap
 import serial
 import serial.tools.list_ports as ls
 
@@ -21,6 +23,17 @@ ch.setFormatter(formatter)
 log.addHandler(ch)
 
 WEIGHT = False
+LIST_PORTS = []
+
+
+def test_port(ip, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(1)
+    result = sock.connect_ex((ip, port))
+    if result == 0:
+        return True
+
+    return False
 
 
 def get_platform():
@@ -216,22 +229,99 @@ def config(**kwargs):
     return result_dict
 
 
+def get_remote_ports(list_ports):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    my_ip = s.getsockname()[0]
+    range_ip = '.'.join(my_ip.split('.')[:-1]) + '.0/24'
+
+    nm = nmap.PortScanner()
+    nm.scan(hosts=range_ip, arguments='-n -sP')
+
+    for ip in nm.all_hosts():
+        if test_port(str(ip), 3333):
+            if ip != my_ip:
+                remote_device = {'name': 'Net. Device', 'device': ip}
+                list_ports.append(remote_device)
+                break
+
+
+def local_ports():
+    for port in ls.comports():
+        dict_ports = {'name': port.name, 'device': port.device}
+        LIST_PORTS.append(dict_ports)
+
+    return LIST_PORTS
+
+
+def remote_ports():
+    remote_port = threading.Thread(target=get_remote_ports, args=[LIST_PORTS])
+    remote_port.start()
+
+
 def get_ports():
-    list_ports = [
+    global LIST_PORTS
+
+    LIST_PORTS = [
         {
             'name': 'Nenhuma',
             'device': ''
         },
     ]
-    for port in ls.comports():
-        dict_ports = {'name': port.name, 'device': port.device}
-        list_ports.append(dict_ports)
 
-    return list_ports
+    local_ports()
+    remote_ports()
+
+    return LIST_PORTS
+
+
+def reload_list_ports():
+    get_ports()
+    return LIST_PORTS
 
 
 def get_last_weight():
     if WEIGHT:
-        return WEIGHT / 1000
+        return int(WEIGHT) / 1000
 
     return '0.000'
+
+
+def get_current_weight(settings):
+    if settings:
+        config(**settings)
+
+    time.sleep(0.2)
+    if WEIGHT:
+        return int(WEIGHT) / 1000
+
+    return '0.000'
+
+
+def get_weight_network(ip, port=3333):
+    cont = 0
+    global WEIGHT
+    while True:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((ip, port))
+            s.sendall(b'\x05')
+            data = s.recv(1024)
+
+            if len(data) == 7:
+                line = data[1:6].decode()
+                if line.isdigit():
+                    WEIGHT = int(line)
+            time.sleep(0.2)
+            if WEIGHT > 0:
+                result_dict = {
+                    "result": True,
+                    "message": WEIGHT / 1000
+                }
+                return result_dict
+            elif cont == 5:
+                result_dict = {
+                    "result": False,
+                    "message": "Erro crítico na leitura de peso!!!"
+                }
+                return result_dict
+        cont += 1

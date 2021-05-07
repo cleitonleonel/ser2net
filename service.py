@@ -4,11 +4,23 @@ import os
 import sys
 import time
 import PySimpleGUIQt as sg
-from api import get_ports, get_last_weight, config, logg
+from datetime import datetime
+from pytz import timezone
+from api import get_ports, \
+    get_last_weight, get_weight_network, \
+    config, logg, reload_list_ports, get_current_weight
 
 logg.disable(logg.DEBUG)
 
 __version__ = 'beta-001'
+__author__ = 'Cleiton Leonel Creton'
+__email__ = 'cleiton.leonel@gmail.com'
+
+SERIAL_PORTS = []
+
+
+def get_current_date():
+    return datetime.now().astimezone(timezone("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
 
 
 def resource_path(relative_path):
@@ -24,21 +36,35 @@ def checked(event):
 
 
 def get_serial_names():
-    list_names = [name['name'] for name in get_ports()]
+    global SERIAL_PORTS
+
+    SERIAL_PORTS = get_ports()
+    list_names = [name['name'] for name in SERIAL_PORTS]
+
+    return list_names
+
+
+def update_list_serial():
+    global SERIAL_PORTS
+
+    list_names = [name['name'] for name in SERIAL_PORTS]
+    SERIAL_PORTS = reload_list_ports()
+
+    time.sleep(0.1)
+    window.Refresh()
+
     return list_names
 
 
 def get_balance_info():
     send_message = '05'
 
-    response = f"""
-    >>> Initialize...
+    response = f"""    >>> Initialize...
     >>> Send bytes: {send_message}
     >>> Awaiting...
     >>> Receive bytes: {get_last_weight()}
     >>> Closing connection...
-    >>> Connection Close.
-    """
+    >>> Connection Close."""
 
     return response
 
@@ -62,9 +88,10 @@ def welcome_layout():
     frame_2 = [
         [sg.Text('')],
         [sg.Input(get_last_weight(), do_not_clear=True, size=(25, 0.8), tooltip='Último Peso Lido', disabled=True, key='last_weight'),
-         sg.Text(' '), sg.Input('2', do_not_clear=True, size=(15, 0.8), tooltip='Timeout', key='timeout'), sg.Stretch()],
+         sg.Text(' '), sg.Input('1', do_not_clear=True, size=(15, 0.8), tooltip='Timeout', key='timeout'), sg.Stretch()],
         [sg.Text('')],
-        [sg.Text('Última Resposta: ')], [sg.Multiline(size=(41.5, 14.5), key='Textbox')],
+        [sg.Text('Última Resposta: ')], [sg.Multiline(size=(41.5, 8.6), key='Textbox')],
+        [sg.Text('Pesagem Apurada: ')], [sg.Multiline(size=(41.5, 4.6), default_text=get_last_weight() + ' KG', font=('Helvetica Bold', 48), key='Textbox2')],
         [sg.Text('')],
         [sg.Text('')],
         [sg.Text('')],
@@ -98,6 +125,7 @@ def welcome_layout():
         [sg.Text(' '), sg.Frame('Ajustes Técnicos', frame_1, title_color='black'), sg.Text(' '),
          sg.Frame('Visualização de dados', frame_2, title_color='black'), sg.Text(' '),
          sg.Frame('Serviços', frame_3, title_color='black'), sg.Stretch()],
+        [sg.Text(f'Versão: {__version__} by {__author__}', text_color="black"), sg.Text(get_current_date(), justification="right", text_color="black", key="clock")],
     ]
 
     return layout_1
@@ -118,10 +146,16 @@ def create_window(current_layout, title):
 if __name__ == '__main__':
     layout = welcome_layout()
     window = create_window(layout, title='Servindo sua balança na rede')
-    server_base = None
+    thread_weight = None
     serial_port = None
+    timeout = None
+    baudrate = None
+    weight = None
+    settings = None
+    is_server = None
     while True:
-        button, values = window.Read()
+        button, values = window.Read(timeout=1.5)
+        window['clock'].Update(get_current_date())
         if button == sg.WIN_CLOSED:
             sys.exit(0)
 
@@ -129,40 +163,58 @@ if __name__ == '__main__':
             break
 
         if button == 'find_ports':
-            window['serial_port'].Update(values=get_serial_names())
+            window['serial_port'].Update(values=update_list_serial())
             window.Refresh()
 
         if button == 'weight_read' or button == 'activate':
             is_server = False if button == 'weight_read' else True
             if values['serial_port'] != 'Nenhuma':
-                for port in get_ports():
-                    device = port['name']
-                    if device == values['serial_port']:
+                for port in SERIAL_PORTS:
+                    port_name = port['name']
+                    if port_name == values['serial_port']:
                         serial_port = port['device']
 
-                baudrate = values['baudrate']
-                timeout = int(values['timeout'])
-                if values['handshaking']:
-                    print(values)
+                if '.' in serial_port:
+                    octets = serial_port.strip().split(".")
+                    if len([x for x in octets if int(x) < 256]) == 4:
+                        weight = get_weight_network(serial_port)
+                        print(weight)
+                else:
+                    baudrate = values['baudrate']
+                    timeout = int(values['timeout'])
+                    if values['handshaking']:
+                        print(values)
 
-                weight = config(serial=serial_port, baudrate=baudrate, rtscts=None,
-                                xonxoff=None, timeout=timeout, server=is_server,
-                                )
+                    weight = config(serial=serial_port, baudrate=baudrate, rtscts=None,
+                                    xonxoff=None, timeout=timeout, server=is_server,
+                                    )
+
+                settings = {
+                    "serial": serial_port,
+                    "baudrate": baudrate,
+                    "rtscts": None,
+                    "xonxoff": None,
+                    "timeout": timeout,
+                    "server": is_server
+                }
 
                 if is_server:
-                    server_base = weight
+                    thread_weight = weight
                     window['activate'].Update(button_color=('white', 'green'))
                     window['deactivate'].Update(disabled=False)
                     window['Textbox'].Update(get_balance_info())
+                    window['Textbox2'].Update(f'{get_last_weight()} KG')
                     window['last_weight'].Update(get_last_weight())
                     window.Refresh()
                 elif not weight['result']:
                     sg.popup(weight['message'], title="Erro", location=(420, 350))
                     window['Textbox'].Update('')
+                    window['Textbox2'].Update('')
                     window['last_weight'].Update(get_last_weight())
                     window.Refresh()
                 else:
                     window['Textbox'].Update(get_balance_info())
+                    window['Textbox2'].Update(f'{get_last_weight()} KG')
                     window['last_weight'].Update(get_last_weight())
                     window.Refresh()
             else:
@@ -174,19 +226,23 @@ if __name__ == '__main__':
             window['activate'].Update(button_color=('white', '#082567'))
             window['deactivate'].Update(disabled=True)
             window.Refresh()
-            server_base.kill()
+            thread_weight.kill()
 
         if button == 'clean':
             window['Textbox'].Update('')
+            window['Textbox2'].Update('')
             window.Refresh()
 
         if button == 'exit':
             if sg.popup_ok_cancel('Deseja mesmo sair???',
                                   title="Sair", location=(420, 350)
                                   ) == "OK":
+                thread_weight.kill()
                 time.sleep(2)
                 window.close()
                 quit()
+        if not is_server:
+            window['Textbox2'].Update(f'{get_current_weight(settings=settings)} KG')
 
     window.close()
     quit()
