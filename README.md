@@ -1,5 +1,6 @@
 # Ser2net
-![Ser2net](https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net-logo.png?raw=true)
+
+<img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net-logo.png?raw=true" alt="Your image title" width="250"/>
 
 **Instalando com pip:**
 
@@ -10,7 +11,7 @@ pip3 install git+https://github.com/cleitonleonel/ser2net.git
 ## Uso
 - Configure uma balança serial/usb e disponibilize os dados na sua rede local:
 
-  <img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.png?raw=true" width="48">
+  <img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.png?raw=true" width="400">
   
 
 # Este projeto ajudou você?
