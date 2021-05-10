@@ -90,8 +90,9 @@ def welcome_layout():
         [sg.Input(get_last_weight(), do_not_clear=True, size=(25, 0.8), tooltip='Último Peso Lido', disabled=True, key='last_weight'),
          sg.Text(' '), sg.Input('1', do_not_clear=True, size=(15, 0.8), tooltip='Timeout', key='timeout'), sg.Stretch()],
         [sg.Text('')],
-        [sg.Text('Última Resposta: ')], [sg.Multiline(size=(41.5, 8.6), key='Textbox')],
-        [sg.Text('Pesagem Apurada: ')], [sg.Multiline(size=(41.5, 4.6), default_text=get_last_weight() + ' KG', font=('Helvetica Bold', 48), key='Textbox2')],
+        [sg.Text('Última Resposta: ')], [sg.Multiline(size=(41.5, 8.6), key='Textbox', disabled=True)],
+        [sg.Text('Pesagem Apurada: ')], [sg.Multiline(size=(41.5, 4.6),
+                                                      default_text=get_last_weight() + ' KG', font=('Helvetica Bold', 48), key='Textbox2', disabled=True)],
         [sg.Text('')],
         [sg.Text('')],
         [sg.Text('')],
@@ -122,10 +123,12 @@ def welcome_layout():
 
     layout_1 = [
         [sg.Text('')],
-        [sg.Text(' '), sg.Frame('Ajustes Técnicos', frame_1, title_color='black'), sg.Text(' '),
-         sg.Frame('Visualização de dados', frame_2, title_color='black'), sg.Text(' '),
-         sg.Frame('Serviços', frame_3, title_color='black'), sg.Stretch()],
-        [sg.Text(f'Versão: {__version__} by {__author__}', text_color="black"), sg.Text(get_current_date(), justification="right", text_color="black", key="clock")],
+        [sg.Text(' '), sg.Frame('Ajustes Técnicos', frame_1, title_color='black', element_justification="l", key='frame_1'), sg.Text(' '),
+         sg.Frame('Visualização de dados', frame_2, title_color='black', element_justification="c", key='frame_2'), sg.Text(' '),
+         sg.Frame('Serviços', frame_3, title_color='black', element_justification="r", key='frame_3'), sg.Stretch()],
+        [sg.Text(f'Versão: {__version__} by {__author__}', text_color="black", font=("verdana", 8)),
+         sg.Text(get_current_date(), justification="right", text_color="black", key="clock", font=("verdana", 8))
+         ],
     ]
 
     return layout_1
@@ -133,19 +136,21 @@ def welcome_layout():
 
 def create_window(current_layout, title):
     return sg.Window(f'Ser2net | {title}',
+                     current_layout,
                      font=('Helvetica', 13),
                      default_button_element_size=(100, 30),
                      auto_size_buttons=False,
                      default_element_size=(20, 22),
                      border_depth=1,
                      resizable=False,
-                     size=(290, 50)
-                     ).Layout(current_layout)
+                     ).Finalize()
 
 
 if __name__ == '__main__':
     layout = welcome_layout()
     window = create_window(layout, title='Servindo sua balança na rede')
+    width, height = window.size
+    current_location = None
     thread_weight = None
     serial_port = None
     timeout = None
@@ -154,8 +159,10 @@ if __name__ == '__main__':
     settings = None
     is_server = None
     while True:
-        button, values = window.Read(timeout=1.5)
+        button, values = window.read(timeout=1.5)
         window['clock'].Update(get_current_date())
+        x, y = window.current_location()
+
         if button == sg.WIN_CLOSED:
             sys.exit(0)
 
@@ -207,7 +214,7 @@ if __name__ == '__main__':
                     window['last_weight'].Update(get_last_weight())
                     window.Refresh()
                 elif not weight['result']:
-                    sg.popup(weight['message'], title="Erro", location=(420, 350))
+                    sg.Popup(weight['message'], title="Erro", location=(420, 350))
                     window['Textbox'].Update('')
                     window['Textbox2'].Update('')
                     window['last_weight'].Update(get_last_weight())
@@ -218,15 +225,16 @@ if __name__ == '__main__':
                     window['last_weight'].Update(get_last_weight())
                     window.Refresh()
             else:
-                sg.popup(f"Porta '{values['serial_port']}' ,não é válida!!! ",
-                         title="Erro", location=(420, 350)
+                sg.Popup(f"Porta '{values['serial_port']}' ,não é válida!!! ",
+                         title="Erro", location=(width // 2 + x - 100, height // 2 + y - 100)
                          )
 
         if button == 'deactivate':
             window['activate'].Update(button_color=('white', '#082567'))
             window['deactivate'].Update(disabled=True)
             window.Refresh()
-            thread_weight.kill()
+            if thread_weight:
+                thread_weight.kill()
 
         if button == 'clean':
             window['Textbox'].Update('')
@@ -234,10 +242,11 @@ if __name__ == '__main__':
             window.Refresh()
 
         if button == 'exit':
-            if sg.popup_ok_cancel('Deseja mesmo sair???',
-                                  title="Sair", location=(420, 350)
-                                  ) == "OK":
-                thread_weight.kill()
+            if sg.PopupOKCancel('Deseja mesmo sair???',
+                                title="Sair", location=(width // 2 + x - 100, height // 2 + y - 100)
+                                ) == "OK":
+                if thread_weight:
+                    thread_weight.kill()
                 time.sleep(2)
                 window.close()
                 quit()
