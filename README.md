@@ -15,7 +15,7 @@ pip3 install git+https://github.com/cleitonleonel/ser2net.git
   
 
 ## Demonstração:
-<img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.gif?raw=true" alt="Your image title" width="250"/>
+<img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.gif?raw=true" alt="Your image title" width="600" height="400"/>
 
 # Este projeto ajudou você?
 
