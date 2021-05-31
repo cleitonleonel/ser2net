@@ -252,7 +252,6 @@ if __name__ == '__main__':
                 window.close()
                 quit()
         if not is_server and not is_remote_port:
-            print('NÃO É SERVER...')
             window['Textbox2'].Update(f'{get_current_weight(settings=settings)} KG')
 
     window.close()
