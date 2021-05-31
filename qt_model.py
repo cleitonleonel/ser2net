@@ -158,6 +158,7 @@ if __name__ == '__main__':
     weight = None
     settings = None
     is_server = None
+    is_remote_port = False
     while True:
         button, values = window.read(timeout=1.5)
         window['clock'].Update(get_current_date())
@@ -182,10 +183,10 @@ if __name__ == '__main__':
                         serial_port = port['device']
 
                 if '.' in serial_port:
+                    is_remote_port = True
                     octets = serial_port.strip().split(".")
                     if len([x for x in octets if int(x) < 256]) == 4:
                         weight = get_weight_network(serial_port)
-                        print(weight)
                 else:
                     baudrate = values['baudrate']
                     timeout = int(values['timeout'])
@@ -250,7 +251,8 @@ if __name__ == '__main__':
                 time.sleep(2)
                 window.close()
                 quit()
-        if not is_server:
+        if not is_server and not is_remote_port:
+            print('NÃO É SERVER...')
             window['Textbox2'].Update(f'{get_current_weight(settings=settings)} KG')
 
     window.close()

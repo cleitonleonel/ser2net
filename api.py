@@ -155,6 +155,7 @@ class ServerThread(threading.Thread):
 
 
 def config(**kwargs):
+    print(kwargs)
     global WEIGHT
 
     if get_platform() in ['Linux', 'Raspberrypi']:
@@ -306,7 +307,6 @@ def get_weight_network(ip, port=3333):
             s.connect((ip, port))
             s.sendall(b'\x05')
             data = s.recv(1024)
-
             if len(data) == 7:
                 line = data[1:6].decode()
                 if line.isdigit():

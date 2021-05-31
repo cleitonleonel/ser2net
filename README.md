@@ -10,8 +10,8 @@ pip3 install git+https://github.com/cleitonleonel/ser2net.git
 
 ## Uso:
 - Configure uma balança serial/usb e disponibilize os dados na sua rede local:
-
-  <img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.png?raw=true" width="400">
+  
+<img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.png?raw=true" width="400">
   
 
 ## Demonstração:

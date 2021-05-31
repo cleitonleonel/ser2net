@@ -172,6 +172,7 @@ if __name__ == '__main__':
     weight = None
     settings = None
     is_server = None
+    is_remote_port = False
     while True:
         button, values = window.read(timeout=1)
 
@@ -186,7 +187,7 @@ if __name__ == '__main__':
             x, y = window.current_location()
 
         if button == 'find_ports':
-            window['serial_port'].Update(values=update_list_serial())
+            window['serial_port'].Update(values=update_list_serial(), size=(14, 1))
             window.Refresh()
 
         if button == 'weight_read' or button == 'activate':
@@ -198,6 +199,7 @@ if __name__ == '__main__':
                         serial_port = port['device']
 
                 if '.' in serial_port:
+                    is_remote_port = True
                     octets = serial_port.strip().split(".")
                     if len([x for x in octets if int(x) < 256]) == 4:
                         weight = get_weight_network(serial_port)
@@ -266,7 +268,7 @@ if __name__ == '__main__':
                 time.sleep(2)
                 window.close()
                 quit()
-        if not is_server:
+        if not is_server and not is_remote_port:
             window['Textbox2'].Update(f'{get_current_weight(settings=settings)} KG')
 
     window.close()
