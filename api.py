@@ -155,7 +155,6 @@ class ServerThread(threading.Thread):
 
 
 def config(**kwargs):
-    print(kwargs)
     global WEIGHT
 
     if get_platform() in ['Linux', 'Raspberrypi']:
