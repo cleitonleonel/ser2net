@@ -2,13 +2,22 @@
 
 <img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net-logo.png?raw=true" alt="Your image title" width="250"/>
 
-**Instalando com pip:**
+## Clonando o projeto:
 
-``
-pip3 install git+https://github.com/cleitonleonel/ser2net.git
-``
+```shell
+git clone https://github.com/cleitonleonel/ser2net.git
+```
 
 ## Uso:
+```shell
+cd ser2net
+python3 -r requirements.txt
+
+python3 qt_model.py 
+# ou
+python3 tk_model.py
+```
+
 - Configure uma balança serial/usb e disponibilize os dados na sua rede local:
   
 <img src="https://github.com/cleitonleonel/Ser2net/blob/master/img/ser2net.png?raw=true" width="400">
