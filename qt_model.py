@@ -253,6 +253,11 @@ if __name__ == '__main__':
                 quit()
         if not is_server and not is_remote_port:
             window['Textbox2'].Update(f'{get_current_weight(settings=settings)} KG')
-
+        else:
+            weight = get_weight_network(serial_port)
+            window['Textbox'].Update(get_balance_info())
+            window['Textbox2'].Update(f'{weight["message"]} KG')
+            window['last_weight'].Update(get_last_weight())
+            window.Refresh()
     window.close()
     quit()
