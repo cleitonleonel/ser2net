@@ -11,7 +11,7 @@ git clone https://github.com/cleitonleonel/ser2net.git
 ## Uso:
 ```shell
 cd ser2net
-python3 -r requirements.txt
+pip3 install -r requirements.txt
 
 python3 qt_model.py 
 # ou
